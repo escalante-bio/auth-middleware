@@ -1,0 +1,51 @@
+bazel_dep(name = "aspect_bazel_lib", version = "2.15.3")
+bazel_dep(name = "aspect_rules_js", version = "2.3.7")
+bazel_dep(name = "aspect_rules_ts", version = "3.5.2")
+bazel_dep(name = "dev_april_corgi")
+
+#local_path_override(
+#    module_name = "dev_april_corgi",
+#    path = "../corgi",
+#)
+archive_override(
+    module_name = "dev_april_corgi",
+    integrity = "sha256-pMlEHMJWskbNnMslsyeSECT101VfhDXHpS8D7xI05AE=",
+    strip_prefix = "corgi-39aea2ae5b899504379c3d5363eabbcf51fd198c",
+    urls = ["https://github.com/aschleck/corgi/archive/39aea2ae5b899504379c3d5363eabbcf51fd198c.tar.gz"],
+)
+
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "rules_distroless", version = "0.5.1")
+bazel_dep(name = "rules_nodejs", version = "6.3.5")
+bazel_dep(name = "rules_oci", version = "2.2.2")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(
+    name = "nodejs",
+    node_version = "22.14.0",
+)
+use_repo(node, "nodejs")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependency = True)
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//:pnpm-lock.yaml",
+)
+use_repo(npm, "npm")
+
+rules_ts_ext = use_extension(
+    "@aspect_rules_ts//ts:extensions.bzl",
+    "ext",
+    dev_dependency = True,
+)
+rules_ts_ext.deps()
+use_repo(rules_ts_ext, "npm_typescript")
+
+apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
+apt.install(
+    name = "bookworm",
+    lock = "//images:bookworm.lock.json",
+    manifest = "//images:bookworm.yaml",
+)
+use_repo(apt, "bookworm")

@@ -1,0 +1,11 @@
+# For corgi
+common --experimental_isolated_extension_usages
+
+# Reduce cache invalidations
+common --incompatible_strict_action_env
+
+build --nolegacy_external_runfiles
+common --@aspect_rules_ts//ts:skipLibCheck=honor_tsconfig
+
+# Stamp builds with Git information
+build --stamp --workspace_status_command=./images/bazel_stamp_vars.sh

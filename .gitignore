@@ -1,0 +1,6 @@
+bazel-auth_middleware
+bazel-bin
+bazel-genfiles
+bazel-out
+bazel-testlogs
+node_modules

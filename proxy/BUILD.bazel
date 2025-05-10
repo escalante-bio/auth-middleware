@@ -1,0 +1,88 @@
+load("@aspect_bazel_lib//lib:transitions.bzl", "platform_transition_filegroup")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_image_layer")
+load("@dev_april_corgi//build_defs:ts.bzl", "c_ts_project", "esbuild_binary", "ts_project")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
+
+package(default_visibility = ["//visibility:private"])
+
+repo = "us-docker.pkg.dev/your-registry-here/your-path-here/proxy"
+
+oci_load(
+    name = "image_load_host",
+    image = ":image_host",
+    repo_tags = [repo + ":latest"],
+)
+
+oci_load(
+    name = "image_load",
+    image = ":image",
+    repo_tags = [repo + ":latest"],
+)
+
+oci_push(
+    name = "image_push",
+    image = ":image",
+    remote_tags = ["latest"],
+    repository = repo,
+)
+
+platform_transition_filegroup(
+    name = "image",
+    srcs = [":image_host"],
+    target_platform = "//images:linux_amd64",
+)
+
+oci_image(
+    name = "image_host",
+    base = "//images:nodejs",
+    entrypoint = ["/app/proxy/runner"],
+    tars = [
+        ":image_layers",
+        "//images:stamp_tar",
+    ],
+    workdir = "/app/proxy/runner.runfiles/_main",
+)
+
+js_image_layer(
+    name = "image_layers",
+    binary = ":runner",
+    platform = "//images:linux_amd64",
+    root = "/app",
+)
+
+js_binary(
+    name = "runner",
+    data = [
+        ":server.js",
+        ":server.js.map",
+        "//:package_json",
+    ],
+    entry_point = "server.js",
+    node_options = [
+        "--enable-source-maps",
+    ],
+)
+
+esbuild_binary(
+    name = "server",
+    entry_point = "proxy.ts",
+    minify = False,
+    platform = "node",
+    deps = [
+        ":proxy",
+    ],
+)
+
+ts_project(
+    name = "proxy",
+    srcs = ["proxy.ts"],
+    deps = [
+        "//:node_modules/@fastify/cookie",
+        "//:node_modules/@types/jsonwebtoken",
+        "//:node_modules/@types/node",
+        "//:node_modules/fastify",
+        "//:node_modules/jsonwebtoken",
+        "//:node_modules/openid-client",
+        "@dev_april_corgi//js/common",
+    ],
+)

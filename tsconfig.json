@@ -1,0 +1,27 @@
+{
+  "extends": "./node_modules/gts/tsconfig-google.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "baseUrl": ".",
+    "esModuleInterop": true, // recommended by esbuild
+    "isolatedModules": true, // recommended by esbuild
+    "jsx": "react",
+    "jsxFactory": "corgi.createVirtualElement",
+    "jsxFragmentFactory": "corgi.Fragment",
+    "lib": ["DOM", "DOM.Iterable", "es2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "sourceMap": false, // we don't use it since we use esbuild
+    "target": "es2022",
+    "rootDir": ".",
+    "paths": {
+      // Setting this so LSP can find stuff in bazel-bin
+      "*": ["./*", "./bazel-bin/*"]
+    }
+  },
+  // Has to be set to workaround https://github.com/microsoft/TypeScript/issues/59036 but also
+  // setting it to so LSP doesn't abort on too many files
+  "exclude": [
+    "bazel-auth_middleware/*"
+  ]
+}
