@@ -29,13 +29,7 @@ async function main(): Promise<void> {
   const issuerUrl = `https://${organization}`;
 
   const domain = checkExists(process.env.COOKIE_DOMAIN, 'Must specify the COOKIE_DOMAIN env var');
-  const cookieSecret =
-    checkExists(process.env.COOKIE_SECRET, 'Must specify the COOKIE_SECRET env var');
-  if (cookieSecret.length < 32) {
-    throw new Error('COOKIE_SECRET must be at least 32 characters long');
-  }
   server.register(FastifyCookie, {
-    secret: cookieSecret,
     hook: 'onRequest',
     parseOptions: {
       domain: domain === 'localhost:5050' ? undefined : domain,
@@ -76,7 +70,8 @@ async function main(): Promise<void> {
       return reply.code(400).send('Bad request');
     }
 
-    if (!source.host.endsWith(`.${organization}`)) {
+    // We want to allow subdomains of .${organization} as redirect targets, but they must be HTTPS
+    if (source.protocol !== 'https:' || !source.host.endsWith(`.${organization}`)) {
       return reply.code(400).send('Bad request');
     }
 
@@ -92,6 +87,7 @@ async function main(): Promise<void> {
     }), encryptionKey), {
       httpOnly: true,
       maxAge: LOGIN_EXPIRATION_MS / 1000,
+      // Lax to enable following links between domains
       sameSite: 'lax',
     });
 
@@ -162,6 +158,7 @@ async function main(): Promise<void> {
       maxAge: SESSION_EXPIRATION_MS / 1000,
       sameSite: 'lax',
     });
+    console.log(`Successful login by ${claims.email} (${claims.sub})`);
     reply.redirect(redirectUrl);
   });
 
@@ -177,7 +174,7 @@ async function main(): Promise<void> {
     } catch (e: unknown) {
       console.error('Unable to decrypt the cookie:', e);
       reply.clearCookie(AUTH_COOKIE);
-      return reply.code(401).send();
+      return reply.code(403).send();
     }
 
     let decoded;
@@ -196,6 +193,12 @@ async function main(): Promise<void> {
     reply.header('X-User-Email', decoded.email);
     reply.header('X-User-ID', decoded.subject);
     reply.send('logged in');
+  });
+
+  server.get('/logout', async (_, reply) => {
+    reply.clearCookie(AUTH_COOKIE);
+    reply.clearCookie(OIDC_COOKIE);
+    reply.send('logged out');
   });
 
   server.get('/favicon.ico', (_, reply) => {

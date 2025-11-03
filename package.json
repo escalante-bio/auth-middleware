@@ -10,7 +10,7 @@
     "gts": "^6.0.2",
     "jsonwebtoken": "^9.0.2",
     "lightningcss": "^1.29.3",
-    "openid-client": "^6.4.1",
+    "openid-client": "^6.8.1",
     "postcss": "^8.5.3",
     "supports-color": "^10.0.0"
   },
